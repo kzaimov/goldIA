@@ -1,0 +1,62 @@
+<?php
+/**
+ * @var Laminas\View\Renderer\PhpRenderer $this
+ */
+
+$authContainer = new \Laminas\Session\Container('goldai_auth');
+$identity = $authContainer->offsetGet('user');
+$isLoggedIn = is_array($identity);
+$isAdmin = $isLoggedIn && (($identity['role'] ?? '') === 'admin');
+?>
+<?= $this->doctype() ?>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <?= $this->headTitle('goldAI')->setSeparator(' - ')->setAutoEscape(false) ?>
+
+        <?= $this->headMeta()
+            ->appendName('viewport', 'width=device-width, initial-scale=1.0')
+            ->appendHttpEquiv('X-UA-Compatible', 'IE=edge')
+        ?>
+
+        <?= $this->headLink()
+            ->appendStylesheet('https://cdnjs.cloudflare.com/ajax/libs/fomantic-ui/2.9.3/semantic.min.css') ?>
+
+        <!-- Scripts -->
+        <?= $this->headScript() ?>
+    </head>
+    <body style="background:#f8f8f8;">
+        <div class="ui menu">
+            <a class="item" href="<?= $this->url('home') ?>">goldAI</a>
+            <?php if ($isLoggedIn): ?>
+                <a class="item" href="<?= $this->url('home') ?>">Dashboard</a>
+                <a class="item" href="<?= $this->url('portfolio-assets') ?>">Assets</a>
+                <?php if ($isAdmin): ?>
+                    <a class="item" href="<?= $this->url('admin-users') ?>">Admin Users</a>
+                <?php endif; ?>
+                <div class="right menu">
+                    <div class="item">
+                        <?= $this->escapeHtml((string) ($identity['username'] ?? '')) ?>
+                        (<?= $this->escapeHtml((string) ($identity['role'] ?? '')) ?>)
+                    </div>
+                    <a class="item" href="<?= $this->url('logout') ?>">Logout</a>
+                </div>
+            <?php else: ?>
+                <div class="right menu">
+                    <a class="item" href="<?= $this->url('login') ?>">Login</a>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <div class="ui main text container" style="margin-top:2rem;">
+            <?= $this->content ?>
+            <footer style="margin:2rem 0;">
+                <p>&copy; <?= date('Y') ?> goldAI</p>
+            </footer>
+        </div>
+        <?= $this->inlineScript()
+            ->appendFile('https://code.jquery.com/jquery-3.7.1.min.js')
+            ->appendFile('https://cdnjs.cloudflare.com/ajax/libs/fomantic-ui/2.9.3/semantic.min.js')
+            ->appendFile($this->basePath('js/app.js')) ?>
+    </body>
+</html>

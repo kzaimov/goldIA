@@ -1,0 +1,136 @@
+<?php
+/** @var Laminas\View\Renderer\PhpRenderer $this */
+$asset = $this->asset;
+$valuations = $this->valuations ?? [];
+$yearlyPerformance = $this->yearlyPerformance ?? [];
+$initialCost = (float) $asset['initial_cost'];
+$lastYearEndValue = $initialCost;
+if ($yearlyPerformance !== []) {
+    $lastRow = $yearlyPerformance[array_key_last($yearlyPerformance)];
+    $lastYearEndValue = (float) $lastRow['year_end_value'];
+}
+$totalProfitLoss = $lastYearEndValue - $initialCost;
+$totalProfitLossPct = $initialCost > 0 ? ($totalProfitLoss / $initialCost) * 100 : 0;
+
+$chartYears = [];
+$chartValues = [];
+foreach ($yearlyPerformance as $row) {
+    $chartYears[] = (string) $row['year'];
+    $chartValues[] = (float) $row['year_end_value'];
+}
+?>
+<div class="ui container">
+    <h2 class="ui header">Asset Detail: <?= $this->escapeHtml($asset['name']) ?> (<?= $this->escapeHtml($asset['symbol']) ?>)</h2>
+    <a class="ui button" href="<?= $this->url('portfolio-assets/edit', ['id' => (int) $asset['id']]) ?>">Edit Asset</a>
+
+    <div class="ui segment">
+        <p><strong>Initial Cost:</strong> $<?= number_format((float) $asset['initial_cost'], 2) ?></p>
+        <p><strong>Purchase Date:</strong> <?= $this->escapeHtml((string) $asset['purchase_date']) ?></p>
+    </div>
+
+    <h3 class="ui dividing header">Add / Edit Valuation</h3>
+    <form class="ui form" method="post" action="<?= $this->url('portfolio-assets/valuation', ['id' => (int) $asset['id']]) ?>">
+        <div class="two fields">
+            <div class="field">
+                <label>Date</label>
+                <input type="date" name="valuation_date" required>
+            </div>
+            <div class="field">
+                <label>Current Value</label>
+                <input type="number" name="current_value" step="0.01" min="0.01" required>
+            </div>
+        </div>
+        <button class="ui primary button" type="submit">Save valuation</button>
+    </form>
+
+    <h3 class="ui dividing header">Valuations</h3>
+    <table class="ui celled table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($valuations as $valuation): ?>
+                <tr>
+                    <td><?= $this->escapeHtml((string) $valuation['valuation_date']) ?></td>
+                    <td>$<?= number_format((float) $valuation['current_value'], 2) ?></td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+
+    <h3 class="ui dividing header">Yearly Performance</h3>
+    <div class="ui segment">
+        <h4 class="ui header">Yearly Value Trend</h4>
+        <?php if ($chartYears === []): ?>
+            <p>No yearly points available yet. Add valuations to generate the chart.</p>
+        <?php else: ?>
+            <canvas id="yearlyValueChart" height="120"></canvas>
+        <?php endif; ?>
+    </div>
+
+    <table class="ui celled table">
+        <thead>
+            <tr>
+                <th>Year</th>
+                <th>Year End Value</th>
+                <th>Baseline</th>
+                <th>Profit / Loss</th>
+                <th>Profit / Loss %</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($yearlyPerformance as $row): ?>
+                <tr>
+                    <td><?= $this->escapeHtml((string) $row['year']) ?></td>
+                    <td>$<?= number_format((float) $row['year_end_value'], 2) ?></td>
+                    <td>$<?= number_format((float) $row['baseline'], 2) ?></td>
+                    <td>$<?= number_format((float) $row['profit_loss'], 2) ?></td>
+                    <td><?= number_format((float) $row['profit_loss_pct'], 2) ?>%</td>
+                </tr>
+            <?php endforeach; ?>
+            <tr class="positive">
+                <td><strong>Total</strong></td>
+                <td><strong>$<?= number_format($lastYearEndValue, 2) ?></strong></td>
+                <td><strong>$<?= number_format($initialCost, 2) ?></strong></td>
+                <td><strong><?= $totalProfitLoss >= 0 ? '+' : '-' ?>$<?= number_format(abs($totalProfitLoss), 2) ?></strong></td>
+                <td><strong><?= $totalProfitLossPct >= 0 ? '+' : '-' ?><?= number_format(abs($totalProfitLossPct), 2) ?>%</strong></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<?php if ($chartYears !== []): ?>
+    <?php
+    $chartConfig = [
+        'labels' => $chartYears,
+        'datasets' => [[
+            'label' => 'Year End Value',
+            'data' => $chartValues,
+            'borderColor' => '#2185d0',
+            'backgroundColor' => 'rgba(33,133,208,0.15)',
+            'pointRadius' => 5,
+            'pointHoverRadius' => 6,
+            'tension' => 0.2,
+            'fill' => false,
+        ]],
+    ];
+    ?>
+    <?= $this->inlineScript()->appendFile('https://cdn.jsdelivr.net/npm/chart.js') ?>
+    <?= $this->inlineScript()->appendScript(
+        'const chartCtx = document.getElementById("yearlyValueChart");'
+        . 'if (chartCtx) {'
+        . 'new Chart(chartCtx, {'
+        . 'type: "line",'
+        . 'data: ' . json_encode($chartConfig, JSON_THROW_ON_ERROR) . ','
+        . 'options: {'
+        . 'responsive: true,'
+        . 'plugins: { legend: { display: true } },'
+        . 'scales: { y: { beginAtZero: false, ticks: { callback: (value) => "$" + Number(value).toLocaleString() } } }'
+        . '}'
+        . '});'
+        . '}'
+    ) ?>
+<?php endif; ?>

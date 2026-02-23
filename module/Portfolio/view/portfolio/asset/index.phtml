@@ -1,0 +1,33 @@
+<?php
+/** @var Laminas\View\Renderer\PhpRenderer $this */
+$assets = $this->assets ?? [];
+?>
+<div class="ui container">
+    <h2 class="ui header">Investment Assets</h2>
+    <a class="ui primary button" href="<?= $this->url('portfolio-assets/add') ?>">Add Asset</a>
+    <table class="ui celled table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Symbol</th>
+                <th>Initial Cost</th>
+                <th>Latest Value</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($assets as $asset): ?>
+                <tr>
+                    <td><?= $this->escapeHtml($asset['name']) ?></td>
+                    <td><?= $this->escapeHtml($asset['symbol']) ?></td>
+                    <td>$<?= number_format((float) $asset['initial_cost'], 2) ?></td>
+                    <td>$<?= number_format(isset($asset['latest_value']) ? (float) $asset['latest_value'] : (float) $asset['initial_cost'], 2) ?></td>
+                    <td>
+                        <a class="ui mini button" href="<?= $this->url('portfolio-assets/detail', ['id' => (int) $asset['id']]) ?>">Details</a>
+                        <a class="ui mini button" href="<?= $this->url('portfolio-assets/edit', ['id' => (int) $asset['id']]) ?>">Edit</a>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+</div>

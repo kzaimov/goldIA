@@ -1,0 +1,34 @@
+<?php
+/** @var Laminas\View\Renderer\PhpRenderer $this */
+$asset = $this->asset;
+$error = $this->error ?? null;
+?>
+<div class="ui container">
+    <h2 class="ui header">Edit Asset</h2>
+
+    <form class="ui form" method="post" action="<?= $this->url('portfolio-assets/edit', ['id' => (int) $asset['id']]) ?>">
+        <div class="field">
+            <label>Asset Name</label>
+            <input type="text" name="name" value="<?= $this->escapeHtmlAttr((string) $asset['name']) ?>" required>
+        </div>
+        <div class="field">
+            <label>Symbol</label>
+            <input type="text" name="symbol" value="<?= $this->escapeHtmlAttr((string) $asset['symbol']) ?>" required>
+        </div>
+        <div class="field">
+            <label>Initial Cost</label>
+            <input type="number" name="initial_cost" step="0.01" min="0.01" value="<?= number_format((float) $asset['initial_cost'], 2, '.', '') ?>" required>
+        </div>
+        <div class="field">
+            <label>Purchase Date</label>
+            <input type="date" name="purchase_date" value="<?= $this->escapeHtmlAttr((string) $asset['purchase_date']) ?>" required>
+        </div>
+
+        <button class="ui primary button" type="submit">Update Asset</button>
+        <a class="ui button" href="<?= $this->url('portfolio-assets/detail', ['id' => (int) $asset['id']]) ?>">Cancel</a>
+    </form>
+
+    <?php if ($error): ?>
+        <div class="ui negative message" style="margin-top:1rem;"><?= $this->escapeHtml($error) ?></div>
+    <?php endif; ?>
+</div>

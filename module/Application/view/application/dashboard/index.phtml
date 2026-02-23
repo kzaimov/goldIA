@@ -1,0 +1,121 @@
+<?php
+/** @var Laminas\View\Renderer\PhpRenderer $this */
+$identity = $this->identity ?? null;
+$dashboard = $this->dashboard ?? [];
+$assets = $dashboard['assets'] ?? [];
+$performanceYears = $dashboard['performanceYears'] ?? [];
+$performanceSeries = $dashboard['performanceSeries'] ?? [];
+$totalInitial = (float) ($dashboard['totalInitial'] ?? 0);
+$totalCurrent = (float) ($dashboard['totalCurrent'] ?? 0);
+$totalProfitLoss = (float) ($dashboard['profitLoss'] ?? 0);
+$profitLossClass = $totalProfitLoss >= 0 ? 'green' : 'red';
+?>
+<div class="ui container">
+    <div class="ui clearing segment">
+        <h2 class="ui left floated header">Portfolio Dashboard</h2>
+        <div class="ui right floated label"><?= $this->escapeHtml((string) ($identity['username'] ?? '')) ?></div>
+    </div>
+
+    <div class="ui stackable four cards">
+        <div class="card">
+            <div class="content">
+                <div class="header">Assets</div>
+                <div class="description" style="font-size:1.5rem;"><?= (int) ($dashboard['assetCount'] ?? 0) ?></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="content">
+                <div class="header">Initial Total</div>
+                <div class="description" style="font-size:1.5rem;">$<?= number_format($totalInitial, 2) ?></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="content">
+                <div class="header">Current Total</div>
+                <div class="description" style="font-size:1.5rem;">$<?= number_format($totalCurrent, 2) ?></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="content">
+                <div class="header">Profit / Loss</div>
+                <div class="description <?= $profitLossClass ?>" style="font-size:1.5rem;">
+                    <?= $totalProfitLoss >= 0 ? '+' : '-' ?>$<?= number_format(abs($totalProfitLoss), 2) ?>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="ui dividing header">Your Assets</h3>
+
+    <div class="ui segment">
+        <h4 class="ui header">Asset Performance Comparison</h4>
+        <?php if ($performanceYears === [] || $performanceSeries === []): ?>
+            <p>No assets available yet. Add assets to see the comparison chart.</p>
+        <?php else: ?>
+            <canvas id="assetComparisonChart" height="120"></canvas>
+        <?php endif; ?>
+    </div>
+
+    <table class="ui celled striped table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Symbol</th>
+                <th class="right aligned">Initial Cost</th>
+                <th class="right aligned">Latest Value</th>
+                <th class="right aligned">Profit / Loss</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php if ($assets === []): ?>
+                <tr>
+                    <td colspan="6" class="center aligned">No assets yet. Add your first investment asset.</td>
+                </tr>
+            <?php else: ?>
+                <?php foreach ($assets as $asset): ?>
+                    <?php
+                    $initial = (float) $asset['initial_cost'];
+                    $latest = isset($asset['latest_value']) ? (float) $asset['latest_value'] : $initial;
+                    $rowProfitLoss = $latest - $initial;
+                    $rowClass = $rowProfitLoss >= 0 ? 'green' : 'red';
+                    ?>
+                    <tr>
+                        <td><?= $this->escapeHtml($asset['name']) ?></td>
+                        <td><?= $this->escapeHtml($asset['symbol']) ?></td>
+                        <td class="right aligned">$<?= number_format($initial, 2) ?></td>
+                        <td class="right aligned">$<?= number_format($latest, 2) ?></td>
+                        <td class="right aligned <?= $rowClass ?>"><?= $rowProfitLoss >= 0 ? '+' : '-' ?>$<?= number_format(abs($rowProfitLoss), 2) ?></td>
+                        <td><a class="ui mini button" href="<?= $this->url('portfolio-assets/detail', ['id' => (int) $asset['id']]) ?>">Details</a></td>
+                    </tr>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </tbody>
+    </table>
+</div>
+
+<?php if ($performanceYears !== [] && $performanceSeries !== []): ?>
+    <?php
+    $chartConfig = [
+        'labels' => $performanceYears,
+        'datasets' => $performanceSeries,
+    ];
+    ?>
+    <?= $this->inlineScript()->appendFile('https://cdn.jsdelivr.net/npm/chart.js') ?>
+    <?= $this->inlineScript()->appendScript(
+        'const assetChartCanvas = document.getElementById("assetComparisonChart");'
+        . 'if (assetChartCanvas) {'
+        . 'new Chart(assetChartCanvas, {'
+        . 'type: "line",'
+        . 'data: ' . json_encode($chartConfig) . ','
+        . 'options: {'
+        . 'responsive: true,'
+        . 'plugins: { legend: { display: true } },'
+        . 'spanGaps: false,'
+        . 'elements: { line: { tension: 0.25 }, point: { radius: 4 } },'
+        . 'scales: { y: { beginAtZero: true, ticks: { callback: (value) => Number(value).toLocaleString() + "%" } } }'
+        . '}'
+        . '});'
+        . '}'
+    ) ?>
+<?php endif; ?>

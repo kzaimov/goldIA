@@ -1,0 +1,33 @@
+<?php
+/** @var Laminas\View\Renderer\PhpRenderer $this */
+$error = $this->error ?? null;
+?>
+<div class="ui container">
+    <h2 class="ui header">Add User</h2>
+    <form class="ui form" method="post" action="<?= $this->url('admin-users/add') ?>">
+        <div class="field">
+            <label>Username</label>
+            <input type="text" name="username" required>
+        </div>
+        <div class="field">
+            <label>Email</label>
+            <input type="email" name="email" required>
+        </div>
+        <div class="field">
+            <label>Password</label>
+            <input type="password" name="password" required>
+        </div>
+        <div class="field">
+            <label>Role</label>
+            <select class="ui dropdown" name="role">
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+            </select>
+        </div>
+        <button class="ui primary button" type="submit">Save</button>
+        <a class="ui button" href="<?= $this->url('admin-users') ?>">Cancel</a>
+    </form>
+    <?php if ($error): ?>
+        <div class="ui negative message" style="margin-top:1rem;"><?= $this->escapeHtml($error) ?></div>
+    <?php endif; ?>
+</div>
